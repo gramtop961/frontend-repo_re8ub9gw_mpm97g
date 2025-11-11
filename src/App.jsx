@@ -26,7 +26,8 @@ function Section({ title, children, subtitle }) {
 export default function App() {
   const baseUrl = useMemo(() => import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000', [])
 
-  const [availableRules, setAvailableRules] = useState([])
+  const [forwardRules, setForwardRules] = useState([])
+  const [backwardRules, setBackwardRules] = useState([])
   const [faultPrefix, setFaultPrefix] = useState('fault_')
 
   // Forward chaining state
@@ -46,7 +47,8 @@ export default function App() {
       try {
         const res = await fetch(`${baseUrl}/rules`)
         const data = await res.json()
-        setAvailableRules(data.rules || [])
+        setForwardRules(data.forward_rules || data.rules || [])
+        setBackwardRules(data.backward_rules || data.rules || [])
         setFaultPrefix(data.fault_prefix || 'fault_')
       } catch (e) {
         // ignore
@@ -136,23 +138,45 @@ export default function App() {
           </div>
         </Section>
 
-        <Section title="Knowledge Base" subtitle="Current rules loaded in the system">
-          <div className="space-y-2 max-h-64 overflow-auto pr-1">
-            {availableRules.map((r, idx) => (
-              <div key={idx} className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2">
-                <span className="font-mono">{r.antecedents.join(' ∧ ') || 'TRUE'}</span>
-                <span className="mx-2">→</span>
-                <span className="font-mono font-semibold">{r.consequent}</span>
-                {r.description && <div className="text-gray-500 text-xs">{r.description}</div>}
+        <Section title="Knowledge Base" subtitle="Current rules loaded (separate sets for forward and backward reasoning)">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-2">Forward Rules (used by Forward Chaining)</h3>
+              <div className="space-y-2 max-h-64 overflow-auto pr-1">
+                {forwardRules.map((r, idx) => (
+                  <div key={`f-${idx}`} className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2">
+                    <span className="font-mono">{(r.antecedents || []).join(' ∧ ') || 'TRUE'}</span>
+                    <span className="mx-2">→</span>
+                    <span className="font-mono font-semibold">{r.consequent}</span>
+                    {r.description && <div className="text-gray-500 text-xs">{r.description}</div>}
+                  </div>
+                ))}
+                {forwardRules.length === 0 && (
+                  <p className="text-sm text-gray-500">Loading rules…</p>
+                )}
               </div>
-            ))}
-            {availableRules.length === 0 && (
-              <p className="text-sm text-gray-500">Loading rules…</p>
-            )}
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-2">Backward Rules (used by Backward Chaining)</h3>
+              <div className="space-y-2 max-h-64 overflow-auto pr-1">
+                {backwardRules.map((r, idx) => (
+                  <div key={`b-${idx}`} className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2">
+                    <span className="font-mono">{(r.antecedents || []).join(' ∧ ') || 'TRUE'}</span>
+                    <span className="mx-2">→</span>
+                    <span className="font-mono font-semibold">{r.consequent}</span>
+                    {r.description && <div className="text-gray-500 text-xs">{r.description}</div>}
+                  </div>
+                ))}
+                {backwardRules.length === 0 && (
+                  <p className="text-sm text-gray-500">Loading rules…</p>
+                )}
+              </div>
+            </div>
           </div>
+          <p className="text-xs text-gray-500 mt-3">Faults are facts that start with the prefix <span className="font-mono">{faultPrefix}</span>.</p>
         </Section>
 
-        <Section title="Forward Chaining" subtitle="Derive all consequences from the given facts and list candidate faults">
+        <Section title="Forward Chaining" subtitle="Derive all consequences from the given facts and list candidate faults (uses Forward Rules)">
           <div className="flex items-center gap-3 mb-3">
             <button onClick={runForward} disabled={loadingForward}
               className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50">
@@ -202,7 +226,7 @@ export default function App() {
           )}
         </Section>
 
-        <Section title="Backward Chaining" subtitle="Test whether a specific fault (goal) can be proven from the facts">
+        <Section title="Backward Chaining" subtitle="Test whether a specific fault (goal) can be proven from the facts (uses Backward Rules)">
           <div className="flex gap-2 mb-3">
             <input
               value={goal}
