@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import BooleanDesigner from './components/BooleanDesigner'
 
 function Pill({ text, onRemove }) {
   return (
@@ -258,6 +259,10 @@ export default function App() {
             </div>
           )}
         </Section>
+
+        <div className="md:col-span-2">
+          <BooleanDesigner />
+        </div>
 
         <div className="md:col-span-2 text-center">
           <a href="/test" className="inline-block mt-2 text-sm text-gray-600 hover:text-gray-800 underline">
